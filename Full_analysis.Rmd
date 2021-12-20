@@ -1,0 +1,214 @@
+---
+title: "Review Analysis - A tale of native american whole genome sequencing"
+author:
+- "Developer / Analyst: Israel Aguilar"
+- "With Data from: Josue Guzman"
+- "Data collection: Aguilar's Virtual Lab Team"
+date: "12/19/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE )
+
+# read libs
+library( "pacman" )
+
+p_load( "openxlsx",
+        "dplyr",
+        "ggplot2",
+        "cowplot",
+        "stringr",
+        "ggsci",
+        "tidyr",
+        "scales",
+        "knitr" )
+```
+
+# Count projects by technology (Array, WES, WGS)
+```{r }
+# Cargar datos
+allprojects <- read.xlsx( xlsxFile = "Tables A tale of native american whole genome sequencing.xlsx", sheet = "Table 2", startRow = 2 )
+
+# create a DF to summarize projects
+bytech <- data.frame(
+  technology = c(
+    "Array",
+    "Whole Exome Sequencing (WES)",
+    "Whole Genome Sequencing (WGS)"
+  ),
+  projects = c( 
+    allprojects %>% filter( str_detect( string = Technology,
+                                        pattern = "Genotyping" ) ) %>% nrow(),
+    allprojects %>% filter( str_detect( string = Technology,
+                                        pattern = "WES" ) ) %>% nrow(),
+    allprojects %>% filter( str_detect( string = Technology,
+                                        pattern = "WGS" ) ) %>% nrow()
+  )
+)
+
+kable( x = bytech )
+
+```
+
+# Count individuals by technology (Array, WES, WGS)
+```{r}
+# sum every individual studied
+paste( sum( allprojects$WES.Samples,
+            allprojects$WGS.Samples,
+            allprojects$Arrays.Samples ), "NatAm individuals have been studied" )
+
+# sum by tech
+paste( sum( allprojects$WES.Samples), "studied by WES" ) 
+paste( sum( allprojects$WGS.Samples), "studied by WGS" ) 
+paste( sum( allprojects$Arrays.Samples), "studied by Array tech" ) 
+```
+
+# Timeline for projects
+```{r}
+# Simplify data
+# we require:
+# project year of publication
+# Technology
+# Category of samples ( Contemporaneous, ancient, or both )
+# WES Samples
+# WGS Samples
+# Array Samples
+# Data.Availability
+simplified <- allprojects %>% 
+  select( Year.publication,
+          Technology,
+          `NatAm.DNA.studied.(Contemporaneous,.aDNA,.Both)`, WES.Samples,
+          WGS.Samples, Arrays.Samples,
+          Data.Availability ) %>% 
+  rename( year = Year.publication,
+          time_of_samples = `NatAm.DNA.studied.(Contemporaneous,.aDNA,.Both)` )
+
+# extract individual DFs by type of samples
+array_projects <- simplified %>% 
+  filter( Arrays.Samples > 0 ) %>% 
+  select( -WES.Samples, -WGS.Samples ) %>%
+  mutate( Technology = "Array" ) %>% 
+  rename( samples = Arrays.Samples )
+
+WES_projects <- simplified %>% 
+  filter( WES.Samples > 0 ) %>% 
+  select( -Arrays.Samples, -WGS.Samples ) %>%
+  mutate( Technology = "WES" ) %>% 
+  rename( samples = WES.Samples )
+
+WGS_projects <- simplified %>% 
+  filter( WGS.Samples > 0 ) %>% 
+  select( -Arrays.Samples, -WES.Samples ) %>%
+  mutate( Technology = "WGS" ) %>% 
+  rename( samples = WGS.Samples )
+
+# gather all techs
+alltech <- bind_rows( array_projects,
+                      WES_projects,
+                      WGS_projects ) %>%
+  mutate( sample_tag = case_when( samples < 10 ~ "< 10",
+                                  samples < 100 ~ "< 100",
+                                  samples < 1000 ~ "< 1000",
+                                  TRUE ~ "more than 1000"
+  ) )
+```
+
+```{r}
+# lets try dots
+timeline <- ggplot( data = alltech,
+                    mapping = aes( x = year,
+                                   y = Technology ) ) +
+  geom_point( mapping = aes(size = sample_tag,
+                            fill = Data.Availability) ,
+              shape = 21, alpha = 0.5,
+              position = position_jitter( width = 0,
+                                          height = 0.2,
+                                          seed = 66 ) ) +
+  scale_x_continuous( limits = c(2009, 2021),
+                      breaks = seq( 2009, 2021, 2) ) +
+  scale_fill_startrek( ) +
+  labs( title = "Timeline for Native American genomic projects",
+        x = "year of publication",
+        y = "technology used",
+        fill = "Data Available?",
+        size = "n. of studied indiviuals" ) +
+  theme_light( base_size = 10 ) +
+  theme( panel.grid.major.x = element_line( linetype = "dashed" ),
+         panel.grid.minor.x = element_line( linetype = "dashed" ),
+         axis.title = element_blank( ),
+         axis.text.y = element_text( face = "bold"),
+         plot.title = element_text( face = "bold" ),
+         legend.title = element_text( face = "bold" ) )
+
+# save plot for manuscript
+ggsave( filename = "timeline.png",
+        plot = timeline,
+        width = 7,
+        height = 5,
+        dpi = 600 )
+
+```
+# Accumulated number of individuals studied
+
+```{r}
+# line plot by tech
+# number of samples acuumulated
+sum_by_year <- alltech %>% 
+  group_by( year, Technology ) %>% 
+  summarize( total_year = sum(samples) ) %>% 
+  ungroup( ) %>% 
+  group_by( Technology ) %>% 
+  summarize( acc = cumsum(total_year),
+             year = year,
+             total_year = total_year )
+
+# plot
+# prepare for y axis control
+thebreaks <- seq( 0, 9000, 1000 )
+
+line_dot <- ggplot( data = sum_by_year,
+                    mapping = aes( x = year,
+                                   y = acc,
+                                   group = Technology,
+                                   color = Technology,
+                                   # lty = Technology
+                    ) ) +
+  geom_line( size = 0.4 ) +
+  geom_point( data = sum_by_year %>% 
+                filter( year == 2021 ) ) +
+  scale_y_continuous( position = "right",
+                      breaks = thebreaks,
+                      labels = prettyNum( thebreaks, big.mark = "," ) ) +
+  scale_x_continuous( limits = c(2009, 2021),
+                      breaks = seq( 2009, 2021, 2) ) +
+  scale_color_jama( ) +
+  labs( title = "The increase in NatAm sequencing",
+        x = "year of publishing",
+        y = "Acc. studied individuals") +
+  theme_classic( ) +
+  theme( legend.position = "top",
+         axis.title = element_text( face = "bold" ),
+         legend.title = element_text( face = "bold" ),
+         plot.title = element_blank( ) )
+
+# save plot for manuscript
+ggsave( filename = "acc_individuals.png",
+        width = 7,
+        height = 5,
+        dpi = 600 )
+```
+
+```{r}
+# lets try a panel fig
+plot_grid( timeline,
+           line_dot,
+           ncol = 1, align = "v",
+           axis = "lr" )
+
+# save plot for manuscript
+ggsave( filename = "timepanel.png",
+        width = 7,
+        height = 10,
+        dpi = 600 )
+```
