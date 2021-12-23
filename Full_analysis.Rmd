@@ -17,6 +17,8 @@ library( "pacman" )
 p_load( "openxlsx",
         "dplyr",
         "ggplot2",
+        "ggrepel",
+        "treemapify",
         "cowplot",
         "stringr",
         "ggsci",
@@ -349,5 +351,204 @@ message( annotated %>%
            filter(Data_availability == "Yes") %>%
            pull(bydata_total_year) %>% 
            sum( ),
-         " with available data")
+         " samples with available data")
+```
+
+## The openness in ancient studies
+```{r}
+##  get the number of ancient samples
+message( full_natam_samples %>%
+           filter( DNA_type_of_samples == "AncientDNA" ) %>% 
+           nrow( ) ,
+         " samples are ancient DNA")
+
+# Lets create a pie chart for ancient and modern dna
+pie_data <- full_natam_samples %>% 
+  group_by( DNA_type_of_samples ) %>% 
+  summarise( samples = n( ) ) %>% 
+  mutate( fraction = samples / sum(samples) ,
+          percent = percent(fraction),
+          lab_pos = 1 - ( fraction / 2) ) %>% 
+  ungroup( )
+
+# print table
+kable( x = pie_data )
+
+# plot pie...
+pieplot <- ggplot( data = pie_data,
+                   mapping = aes( x = 2,
+                                  y = fraction,
+                                  fill = DNA_type_of_samples ) ) +
+  geom_label_repel( mapping = aes( label = paste( DNA_type_of_samples,
+                                                  "\n",
+                                                  prettyNum( samples, big.mark = "," ),
+                                                  "samples" ),
+                                   x = 2,
+                                   y = lab_pos ),
+                    min.segment.length = 0,
+                    segment.curvature = -1e-20,
+                    nudge_x = 1,
+                    fill = "white" ) +
+  geom_col( color = "black" ) +
+  xlim( c(0, 3) ) +
+  scale_fill_manual( values = c( 
+    "deepskyblue3",
+    "cornflowerblue") ) +
+  coord_polar( theta = "y" ) +
+  labs( title = "Ancient DNA in NatAm genomics" ) +
+  theme_void( ) +
+  theme( legend.position = "none",
+         plot.background = element_rect( fill = "white") )
+
+```
+
+```{r}
+
+# Get the share of available data per type of DNA
+fractions <- full_natam_samples %>% 
+  group_by( DNA_type_of_samples,
+            Data_availability ) %>% 
+  summarise( samples = n( ) ) %>% 
+  ungroup(  ) %>% 
+  group_by( DNA_type_of_samples ) %>% 
+  summarise( Data_availability = Data_availability,
+             samples = samples,
+             totals = sum(samples),
+             frac = samples / totals )
+
+# print table
+kable( x = fractions )
+
+# Lets plot cols stacked
+sharebar <- ggplot( data = fractions,
+                    mapping = aes( x = DNA_type_of_samples,
+                                   y = frac,
+                                   fill = Data_availability ) ) +
+  geom_col( color = "black", width = 0.9 ) +
+  scale_fill_manual( values = c("#cc1c00", "#84bd00")) +
+  scale_y_continuous( limits = c(0,1),
+                      breaks = seq( 0, 1, by = 0.2 ),
+                      labels = percent,
+                      expand = c(0,0) ) +
+  labs( title = "Data availability",
+        x = "",
+        y = "Accumulated samples",
+        fill = "Is Publicly Available?" ) +
+  theme_classic( ) +
+  theme( legend.position = "right",
+         axis.text.x = element_text( face = "bold" ) )
+
+# create a panel for ancient overview
+ancient_panel <- plot_grid( pieplot,
+                            sharebar,
+                            nrow = 1,
+                            rel_widths = c(0.35, 0.65) )
+
+```
+
+```{r }
+# create a function for treemap
+treemaper <- function( the_data, the_time, n_cut, the_color ) {
+  #
+  tmp_data <- the_data %>% 
+    filter( DNA_type_of_samples == the_time )
+  
+  # sample cutofffor other tagging
+  sample_cutoff <- n_cut
+  
+  # Lets create a treemap to see the most studied pops
+  pop_summary <- tmp_data %>% 
+    group_by( Population ) %>% 
+    summarise( samples = n( ) ) %>% 
+    arrange( -samples ) %>% 
+    ungroup( ) %>% 
+    mutate( tag = ifelse( test = samples < sample_cutoff,
+                          yes = "other",
+                          no = Population )) %>% 
+    group_by( tag ) %>% 
+    summarise( totals = sum(samples)  ) %>% 
+    arrange( -totals ) %>% 
+    mutate( units = "individuals" ) 
+  
+  # number of other pops
+  other_n <- tmp_data %>% 
+    group_by( Population ) %>% 
+    summarise( samples = n( ) ) %>% 
+    arrange( -samples ) %>% 
+    ungroup( ) %>% 
+    filter( samples < sample_cutoff ) %>% 
+    nrow( )
+  
+  #
+  pop_summary$units[ 2:nrow(pop_summary) ] <- ""
+  
+  pop_summary <- pop_summary %>% 
+    mutate( subtag = paste( prettyNum( totals, big.mark = ","),
+                            units ),
+            tag = ifelse( test = tag == "other",
+                          yes = paste( "other", other_n, "Pops",
+                                       "with less than", sample_cutoff, "individuals"),
+                          no = tag ) )
+  
+  # lets make treemap
+  ggplot( data = pop_summary,                     # el datframe que tiene las etiquetas y subetiquetas
+          mapping = aes( area = totals ) ) +   # el tamanio de los cuadrados sera proporcional a la cantidad de anomalias contadas
+    geom_treemap( 
+      mapping = aes(fill = totals ),        # Usamos geometria de treemap; el relleno fill sera un gradiente dependiendo de la cantidad de anomalias
+                  color = "black",                          # el borde de los cuadros sera blanco
+                  size = 2 ) +                                # el grosor del borde sera de 3 unidades
+    geom_treemap_text( mapping = aes( label = tag ),    # su mapeo label indica que columna aparecera en el texto
+                       place = "centre",                     # en que parte del cuadro aparecera la palabra
+                       reflow = TRUE,                        # ajustar el texto a la caja
+                       size = 10,                            # el tamanio de la palabra
+                       fontface = "bold" ) +
+    geom_treemap_text( mapping = aes( label = subtag ),     # el texto viene de la subetiqueta que creamos
+                       place = "bottomright",                    # aparecera abajo a la derecha
+                       color = "black",                          # el color del texto es blanco
+                       padding.x = unit( x = 1,                  # se puede mover la etiqueta, esta se mueve 3
+                                         units = "mm" ),         # milimetros
+                       padding.y = unit( x = 1,                  # se mueve en y 3 mm tambien
+                                         units = "mm" ),
+                       size = 8 ) +
+    scale_fill_gradient( low = "white",      # el color mas bajo es este hexadecimal que es un naranjita
+                         high = the_color ) +
+    labs( title = "Most Studied NatAm populations",
+          subtitle = the_time ) +
+    theme( legend.position = "none",                       # eliminamos la leyenda; no dice mucho
+           plot.title =  element_text( size = 17,          # cambiamos el tamanio del titulo
+                                       face = "bold" ) )
+}
+
+```
+
+
+
+```{r }
+modern_tree <- treemaper( the_data = full_natam_samples,
+                          the_time = "ModernDNA",
+                          the_color = "cornflowerblue",
+                          n_cut = 100 )
+
+ancient_tree <- treemaper( the_data = full_natam_samples,
+                           the_time = "AncientDNA",
+                           the_color = "deepskyblue3",
+                           n_cut = 5 )
+
+treegrid <- plot_grid( modern_tree,
+                       ancient_tree + theme( plot.title = element_blank( ) ),
+                       nrow = 1,
+                       align = "h" )
+
+# gather grids
+plot_grid( ancient_panel,
+           treegrid,
+           ncol = 1,
+           rel_heights = c( 0.4, 0.6 ) )
+
+# save plot for manuscript
+ggsave( filename = "ancientpanel.png",
+        width = 10,
+        height = 10,
+        dpi = 600 )
+
 ```
