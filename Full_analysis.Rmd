@@ -458,13 +458,13 @@ treemaper <- function( the_data, the_time, n_cut, the_color ) {
   
   # Lets create a treemap to see the most studied pops
   pop_summary <- tmp_data %>% 
-    group_by( Population ) %>% 
+    group_by( Homologated_pop_code ) %>%
     summarise( samples = n( ) ) %>% 
     arrange( -samples ) %>% 
     ungroup( ) %>% 
     mutate( tag = ifelse( test = samples < sample_cutoff,
                           yes = "other",
-                          no = Population )) %>% 
+                          no = Homologated_pop_code )) %>% 
     group_by( tag ) %>% 
     summarise( totals = sum(samples)  ) %>% 
     arrange( -totals ) %>% 
@@ -472,7 +472,7 @@ treemaper <- function( the_data, the_time, n_cut, the_color ) {
   
   # number of other pops
   other_n <- tmp_data %>% 
-    group_by( Population ) %>% 
+    group_by( Homologated_pop_code ) %>% 
     summarise( samples = n( ) ) %>% 
     arrange( -samples ) %>% 
     ungroup( ) %>% 
