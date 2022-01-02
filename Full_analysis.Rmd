@@ -521,9 +521,23 @@ treemaper <- function( the_data, the_time, n_cut, the_color ) {
 
 ```
 
-
+# How many groups have been studied?
 
 ```{r }
+## How many uniq groups in the table?
+studiedgroups <- full_natam_samples$Homologated_pop_code %>% unique( )
+
+# mess
+message( length( studiedgroups ), " unique studied groups with any tech" )
+
+# see studied groups by technology
+full_natam_samples %>% 
+  select( Technology, Homologated_pop_code ) %>% 
+  unique( ) %>% 
+  group_by( Technology ) %>% 
+  summarise( studied_pops = n( ) ) %>% 
+  kable( )
+
 modern_tree <- treemaper( the_data = full_natam_samples,
                           the_time = "ModernDNA",
                           the_color = "cornflowerblue",
