@@ -573,3 +573,137 @@ sharebar
 modern_tree
 ancient_tree
 ```
+
+# Placeholder for analysing he missing groups 
+
+```{r}
+# TODO
+
+```
+
+# The countries studying NatAm genomics
+```{r}
+
+# read data
+allcountries <- read.xlsx( xlsxFile = "Tables A tale of native american whole genome sequencing.xlsx", sheet = "Sup Tab 3", startRow = 2 )
+
+# create a function for pie chart
+piecharter <- function( thedata, thecolumn, lowcolor, highcolor, thetitle ) {
+  
+  piedata <- thedata %>% 
+    select( thecolumn ) %>% 
+    rename( countries = 1 ) %>% 
+    group_by( countries ) %>% 
+    summarise( studies = n( ) ) %>% 
+    arrange( -studies ) %>% 
+    mutate( fraction = studies / sum(studies) ,
+            percent = percent(fraction),
+            # lab_pos = 1 - (cumsum( fraction ) - fraction / 2 ) ) %>% 
+            lab_pos = (cumsum( fraction ) - (fraction / 2) ) ) %>% 
+    ungroup( ) %>% 
+    mutate( countries = factor( x = countries,
+                                levels = .$countries) )
+  
+  # print table
+  piedata %>%
+    select( countries, studies ) %>%
+    kable( x = ., caption = thetitle ) %>% 
+    print( )
+  
+  # plot a pie
+  ggplot( data = piedata,
+          mapping = aes( x = 2,
+                         y = fraction,
+                         fill = studies ) ) +
+    geom_label_repel( mapping = aes( label = paste( countries,
+                                                    # "\n",
+                                                    studies),
+                                     x = 2,
+                                     y = lab_pos ),
+                      min.segment.length = 0,
+                      segment.curvature = -1e-20,
+                      nudge_x = 2,
+                      fill = "white",
+                      size = 3 ) +
+    geom_col( color = "black" ) +
+    xlim( c(0, 4) ) +
+    scale_fill_gradient( low = lowcolor,
+                         high = highcolor ) +
+    coord_polar( theta = "y" ) +
+    labs( title = thetitle ) +
+    theme_void( ) +
+    theme( legend.position = "none",
+           # plot.background = element_rect( fill = "white") 
+           )
+}
+
+# create a pie chart for countries first author
+firstauthorpie <- piecharter( thedata = allcountries,
+                              thecolumn = "First.Author.Research.Institute.Country",
+                              lowcolor = "deepskyblue",
+                              highcolor = "deepskyblue3",
+                              thetitle = "First Author Institution" )
+
+# vis
+firstauthorpie
+
+# create a pie chart for countries corresponding author
+correspondingpie <- piecharter( thedata = allcountries,
+                                thecolumn = "Corresponding.Research.Institute.Country",
+                                lowcolor = "slategray1",
+                                highcolor = "slategray3",
+                                thetitle = "Corresponding Institution" )
+
+# vis
+correspondingpie
+
+# create a bar chart for other participant countries
+participants <- allcountries %>% 
+  separate_rows( Participant.countries.nonfirst.noncorresponding, sep = "," ) %>% 
+  mutate( participant_country = str_remove_all( string = Participant.countries.nonfirst.noncorresponding, pattern = " ") ) %>% 
+  group_by( participant_country ) %>% 
+  summarise( studies = n( ) ) %>% 
+  arrange( -studies, participant_country ) %>% 
+  filter( !is.na( participant_country ) )
+
+# print table
+kable( x = participants )
+
+# plot bars
+barplotparticipants <- ggplot( data = participants,
+                               mapping = aes( x = participant_country,
+                                              y = studies ) ) +
+  geom_col( fill = "slategray" ) +
+  scale_x_discrete( limits = participants$participant_country) +
+  scale_y_continuous( limits = c(0, 21),
+                      breaks = seq( from = 0, to = 21, by = 2),
+                      expand = c( 0, 0 ) ) +
+  ggtitle(label = "Non-first, non-corresponding collaborating Institution" ) +
+  theme_linedraw( ) +
+  theme( panel.grid.major.x = element_blank( ),
+         axis.text.x = element_text( angle = 90,
+                                     vjust = 0.5,
+                                     hjust = 1,
+                                     size = 5 ),
+         axis.title.x = element_blank( ) )
+
+# vis
+barplotparticipants
+
+# create a panel
+authorspanel <- plot_grid( firstauthorpie, correspondingpie, nrow = 1 )
+
+completepanel <- plot_grid( authorspanel,
+                            barplotparticipants,
+                            ncol = 1 )
+
+# vis
+# completepanel
+
+# Save the panel
+ggsave( filename = "authorship_panel.png",
+        plot = completepanel,
+        width = 7,
+        height = 7,
+        dpi = 600 )
+```
