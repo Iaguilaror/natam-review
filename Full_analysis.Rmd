@@ -525,7 +525,7 @@ treemaper <- function( the_data, the_time, n_cut, the_color ) {
 
 ```{r }
 ## How many uniq groups in the table?
-studiedgroups <- full_natam_samples$Homologated_pop_code %>% unique( )
+studiedgroups <- full_natam_samples$Homologated_pop_code %>% unique( ) %>% sort( )
 
 # mess
 message( length( studiedgroups ), " unique studied groups with any tech" )
@@ -577,7 +577,73 @@ ancient_tree
 # Placeholder for analysing he missing groups 
 
 ```{r}
-# TODO
+# studiedgroups has every code already studied
+
+# read all census data
+allcensus <- read.xlsx(xlsxFile = "Tables A tale of native american whole genome sequencing.xlsx", sheet = "Sup Tabl 1.", startRow = 2)
+
+# find the "censed" natam groups that have not been represented
+notrepresented <- allcensus %>% 
+  filter( !(allcensus$Homologated_pop_code %in% studiedgroups) ) %>% 
+  # tag not represented pops by size
+  mutate( tag = case_when( population < 100 ~ "< 100",
+                           population < 1000 ~ "100 - 1,000",
+                           population < 10000 ~ "1,000 - 10,000",
+                           population < 100000 ~ "10,000 - 100,000",
+                           population < 1000000 ~ "100,000 - 1,000,000",
+                           population >= 1000000 ~ "> 1,000,000" ) ) %>% 
+  mutate( order = case_when( population < 100 ~ "1",
+                             population < 1000 ~ "2",
+                             population < 10000 ~ "3",
+                             population < 100000 ~ "4",
+                             population < 1000000 ~ "5",
+                             population >= 1000000 ~ "6" ) )
+
+# summarize missing groups by pop size...
+missumarised <- notrepresented %>% 
+  filter( !is.na(population) ) %>% 
+  group_by( Home.country, tag, order ) %>% 
+  summarise( groups = n( ) ) %>% 
+  pivot_wider( data = .,
+               id_cols = c(tag, order),
+               names_from = Home.country,
+               values_from = groups ) %>% 
+  arrange( desc(order) ) %>% 
+  select( -order )
+
+# replace NAs with 0 in the table
+missumarised[is.na(missumarised)] <- 0
+
+# from wide to long
+long <- pivot_longer( data = missumarised,
+                      cols = -tag,
+                      names_to = "country",
+                      values_to = "groups" )
+
+misstable <- pivot_wider( data = long, id_cols = country, names_from = tag, values_from = groups  )
+
+# create an order for the print table
+tmptable <- misstable 
+
+tmptable <- tmptable %>% 
+  select( -country )
+
+rownames( tmptable ) <- misstable$country
+
+order <- rowSums( tmptable ) %>% sort( decreasing = T ) %>% names( )
+
+# reorder the table
+misstable <- misstable %>% 
+  arrange( factor( country, levels = order ) )
+
+kable( x = misstable )
+
+# save the table with the census description of the missing groups...
+write.csv( x = notrepresented, file = "norepresented_groups.csv", quote = T, row.names = F, na = ""  )
+
+# and save the table with the data summarized...
+write.csv( x = misstable, file = "summary_norepresented_groups.csv",
+           quote = T, row.names = F, na = ""  )
 
 ```
 
@@ -592,7 +658,9 @@ piecharter <- function( thedata, thecolumn, lowcolor, highcolor, thetitle ) {
   
   piedata <- thedata %>% 
     select( thecolumn ) %>% 
-    rename( countries = 1 ) %>% 
+    rename( countries = 1 ) %>%
+    separate_rows( countries, sep = "," ) %>% 
+    mutate( countries = str_remove_all( string = countries, pattern = " ") ) %>% 
     group_by( countries ) %>% 
     summarise( studies = n( ) ) %>% 
     arrange( -studies ) %>% 
@@ -634,7 +702,7 @@ piecharter <- function( thedata, thecolumn, lowcolor, highcolor, thetitle ) {
     theme_void( ) +
     theme( legend.position = "none",
            # plot.background = element_rect( fill = "white") 
-           )
+    )
 }
 
 # create a pie chart for countries first author
@@ -661,6 +729,7 @@ correspondingpie
 participants <- allcountries %>% 
   separate_rows( Participant.countries.nonfirst.noncorresponding, sep = "," ) %>% 
   mutate( participant_country = str_remove_all( string = Participant.countries.nonfirst.noncorresponding, pattern = " ") ) %>% 
+  filter( participant_country != "" ) %>% 
   group_by( participant_country ) %>% 
   summarise( studies = n( ) ) %>% 
   arrange( -studies, participant_country ) %>% 
