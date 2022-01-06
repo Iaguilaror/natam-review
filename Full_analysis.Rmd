@@ -320,7 +320,7 @@ wes_stack <-plot_areas( the_data = annotated,
                         the_tech = "WES"  )
 
 array_stack <- plot_areas( the_data = annotated,
-                           the_tech = "Arrays"  )
+                           the_tech = "Array"  )
 
 # create a panel
 plot_grid( wgs_stack +
