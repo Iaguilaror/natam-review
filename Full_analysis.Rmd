@@ -424,7 +424,7 @@ sharebar <- ggplot( data = fractions,
                     mapping = aes( x = DNA_type_of_samples,
                                    y = frac,
                                    fill = Data_availability ) ) +
-  geom_col( color = "black", width = 0.9 ) +
+  geom_col( color = "black", width = 0.9, alpha = 0.6 ) +
   scale_fill_manual( values = c("#cc1c00", "#84bd00")) +
   scale_y_continuous( limits = c(0,1),
                       breaks = seq( 0, 1, by = 0.2 ),
@@ -548,10 +548,13 @@ ancient_tree <- treemaper( the_data = full_natam_samples,
                            the_color = "deepskyblue3",
                            n_cut = 5 )
 
-treegrid <- plot_grid( modern_tree,
-                       ancient_tree + theme( plot.title = element_blank( ) ),
-                       nrow = 1,
-                       align = "h" )
+treegrid <- plot_grid( 
+  # modern_tree,
+  # ancient_tree + theme( plot.title = element_blank( ) ),
+  ancient_tree,
+  modern_tree + theme( plot.title = element_blank( ) ),
+  nrow = 1,
+  align = "h" )
 
 # gather grids
 thepanel <- plot_grid( ancient_panel,
@@ -645,6 +648,9 @@ write.csv( x = notrepresented, file = "norepresented_groups.csv", quote = T, row
 write.csv( x = misstable, file = "summary_norepresented_groups.csv",
            quote = T, row.names = F, na = ""  )
 
+# print total of not rep groups
+message( "There is a total of ", nrow( notrepresented ), " NatAm groups not yet genomically represented across different countries" )
+
 ```
 
 # The countries studying NatAm genomics
@@ -692,7 +698,7 @@ piecharter <- function( thedata, thecolumn, lowcolor, highcolor, thetitle ) {
                       segment.curvature = -1e-20,
                       nudge_x = 2,
                       fill = "white",
-                      size = 3 ) +
+                      size = 2 ) +
     geom_col( color = "black" ) +
     xlim( c(0, 4) ) +
     scale_fill_gradient( low = lowcolor,
