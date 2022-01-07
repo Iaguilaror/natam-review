@@ -30,7 +30,7 @@ p_load( "openxlsx",
 # Count projects by technology (Array, WES, WGS)
 ```{r }
 # Cargar datos
-allprojects <- read.xlsx( xlsxFile = "Tables A tale of native american whole genome sequencing.xlsx", sheet = "Table 2", startRow = 2 )
+allprojects <- read.xlsx( xlsxFile = "Tables A tale of native american whole genome sequencing.xlsx", sheet = "Sup Table YYY", startRow = 2 )
 
 # say how many projects are under review
 message( nrow(allprojects), " reviewed projetcs" )
