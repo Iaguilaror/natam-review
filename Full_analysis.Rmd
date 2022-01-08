@@ -29,6 +29,16 @@ p_load( "openxlsx",
 
 # Count projects by technology (Array, WES, WGS)
 ```{r }
+# create the map
+source( file = "map_figure.R" )
+
+# Vis
+america_map.p
+
+```
+
+# Count projects by technology (Array, WES, WGS)
+```{r }
 # Cargar datos
 allprojects <- read.xlsx( xlsxFile = "Tables A tale of native american whole genome sequencing.xlsx", sheet = "Sup Table YYY", startRow = 2 )
 
