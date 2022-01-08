@@ -110,7 +110,6 @@ america_map.p <- ggplot(america_map_data_2.df) +
           size = 0.2)  + 
   scale_fill_gradient(low = "white",  #gris 
                       high = "#ff9900", #orange
-                      name = "NatAm Population",
                       breaks = seq( from = 0, to = 8e6, by = 2e6 ),
                       limits = c (0, 8e6),
                       labels = comma ) +
@@ -118,7 +117,8 @@ america_map.p <- ggplot(america_map_data_2.df) +
                                 frame.colour = "black")) +
   coord_sf(xlim = c(-170, -15),           
            ylim = c(-90, 120)) +
-  labs(title = "Estimated NatAm Population in America Countries",
+  labs(title = "NatAm Population",
+       fill = "habitants",
        caption = "Data Sources = \n Official Censuses Data of NatAm Pop of each country, \n IGWIA 2021, \n Labels show those countries with more than 1 million Native American population") +
   geom_sf_label(aes(label = ifelse(as.integer(Total.NatAm.Population.reported) > 1e6,
                                    Isocode,

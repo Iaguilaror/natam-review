@@ -661,6 +661,45 @@ write.csv( x = misstable, file = "summary_norepresented_groups.csv",
 # print total of not rep groups
 message( "There is a total of ", nrow( notrepresented ), " NatAm groups not yet genomically represented across different countries" )
 
+# order of pop size
+orderx <- c( "< 100", "100 - 1,000", "1,000 - 10,000",
+             "10,000 - 100,000", "100,000 - 1,000,000" )
+
+# try a heatmap
+missing_heat <- ggplot( data = long %>% filter( groups > 0 ),
+        mapping = aes( x = tag,
+                       y = country,
+                       fill = groups,
+                       label = groups ) ) +
+  geom_tile( color = "black" ) +
+  geom_text( ) +
+  scale_x_discrete( limits = rev( orderx ) ) +
+  scale_y_discrete( limits = rev( order ) ) +
+  scale_fill_gradient( low = "white",
+                       high = "tomato" ) +
+  labs( title = "NatAm groups not represented in genomics",
+        x = "Population size",
+        fill = "# of groups" ) +
+  theme_light( ) +
+  theme_void( ) +
+  theme( axis.title.y = element_blank( ),
+         axis.text.y = element_text( face = "bold" ),
+         axis.text.x = element_text( angle = 90 ),
+         axis.title.x = element_text( face = "bold" ),
+         legend.position = "none" )
+
+# vis
+missing_heat
+
+# create a panel with map and heatmap
+plot_grid( america_map.p + theme( legend.position = "right" ),
+           missing_heat )
+
+ggsave( filename = "map_and_missing.png",
+        width = 10,
+        height = 5,
+        dpi = 600 )
+
 ```
 
 # The countries studying NatAm genomics
