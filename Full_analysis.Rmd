@@ -30,7 +30,7 @@ p_load( "openxlsx",
 # Count projects by technology (Array, WES, WGS)
 ```{r }
 # create the map
-source( file = "map_figure.R" )
+source( file = "auxiliary_scripts/map_figure.R" )
 
 # Vis
 america_map.p
