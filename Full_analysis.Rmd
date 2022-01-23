@@ -4,7 +4,7 @@ author:
 - "Developer / Analyst: Israel Aguilar"
 - "With Data from: Josue Guzman"
 - "Data collection: Aguilar's Virtual Lab Team"
-date: "12/19/2021"
+date: "23 January 2022"
 output: pdf_document
 ---
 
@@ -24,7 +24,12 @@ p_load( "openxlsx",
         "ggsci",
         "tidyr",
         "scales",
-        "knitr" )
+        "knitr",
+        "rnaturalearth",
+        "sf",
+        "tmap",
+        "rgeos",
+        "scales" )
 ```
 
 # Count projects by technology (Array, WES, WGS)
@@ -216,13 +221,15 @@ ggsave( filename = "acc_individuals.png",
 
 ```{r}
 # lets try a panel fig
-plot_grid( timeline,
-           line_dot,
-           ncol = 1, align = "v",
-           axis = "lr" )
+timedot <- plot_grid( timeline,
+                      line_dot,
+                      labels = c("A","B"),
+                      ncol = 1, align = "v",
+                      axis = "lr" )
 
 # save plot for manuscript
 ggsave( filename = "timepanel.png",
+        plot = timedot,
         width = 7,
         height = 10,
         dpi = 600 )
@@ -333,25 +340,26 @@ array_stack <- plot_areas( the_data = annotated,
                            the_tech = "Array"  )
 
 # create a panel
-plot_grid( wgs_stack +
-             theme( axis.title.x = element_blank( ),
-                    axis.text.x = element_blank( ),
-                    legend.position = "none" ),
-           wes_stack +
-             theme( axis.title.x = element_blank( ),
-                    axis.text.x = element_blank( ),
-                    plot.title = element_blank( ) ),
-           array_stack +
-             theme( plot.title = element_blank( ),
-                    axis.text.x = element_text( angle = 90, vjust = 0.5, hjust = 0.5 ),
-                    legend.position = "none" ),
-           ncol = 1,
-           axis = "lr",
-           align = "v",
-           rel_heights = c( 0.35, 0.3, 0.35)  )
+share_panel <- plot_grid( wgs_stack +
+                            theme( axis.title.x = element_blank( ),
+                                   axis.text.x = element_blank( ),
+                                   legend.position = "none" ),
+                          wes_stack +
+                            theme( axis.title.x = element_blank( ),
+                                   axis.text.x = element_blank( ),
+                                   plot.title = element_blank( ) ),
+                          array_stack +
+                            theme( plot.title = element_blank( ),
+                                   axis.text.x = element_text( angle = 90, vjust = 0.5, hjust = 0.5 ),
+                                   legend.position = "none" ),
+                          ncol = 1,
+                          axis = "lr",
+                          align = "v",
+                          rel_heights = c( 0.35, 0.3, 0.35)  )
 
 # save plot for manuscript
 ggsave( filename = "sharepanel.png",
+        plot = share_panel,
         width = 7,
         height = 10,
         dpi = 600 )
@@ -362,6 +370,22 @@ message( annotated %>%
            pull(bydata_total_year) %>% 
            sum( ),
          " samples with available data")
+```
+
+```{r}
+# lets try a panel fig
+plot_grid( timedot,
+           share_panel,
+           labels = c("","C"),
+           nrow = 1 )
+
+# Save
+ggsave( filename = "timepanelv2.png",
+        # plot = timedot,
+        width = 14,
+        height = 7,
+        dpi = 600 )
+
 ```
 
 ## The openness in ancient studies
@@ -408,7 +432,8 @@ pieplot <- ggplot( data = pie_data,
   labs( title = "Ancient DNA in NatAm genomics" ) +
   theme_void( ) +
   theme( legend.position = "none",
-         plot.background = element_rect( fill = "white") )
+         # plot.background = element_rect( fill = "white")
+  )
 
 ```
 
@@ -451,6 +476,7 @@ sharebar <- ggplot( data = fractions,
 # create a panel for ancient overview
 ancient_panel <- plot_grid( pieplot,
                             sharebar,
+                            labels = c("A","B"),
                             nrow = 1,
                             rel_widths = c(0.35, 0.65) )
 
@@ -522,7 +548,7 @@ treemaper <- function( the_data, the_time, n_cut, the_color ) {
                        size = 8 ) +
     scale_fill_gradient( low = "white",      # el color mas bajo es este hexadecimal que es un naranjita
                          high = the_color ) +
-    labs( title = "Most Studied NatAm populations",
+    labs( title = "    Most Studied NatAm populations",
           subtitle = the_time ) +
     theme( legend.position = "none",                       # eliminamos la leyenda; no dice mucho
            plot.title =  element_text( size = 17,          # cambiamos el tamanio del titulo
@@ -569,6 +595,7 @@ treegrid <- plot_grid(
 # gather grids
 thepanel <- plot_grid( ancient_panel,
                        treegrid,
+                       labels = c("","C"),
                        ncol = 1,
                        rel_heights = c( 0.4, 0.6 ) )
 
@@ -667,10 +694,10 @@ orderx <- c( "< 100", "100 - 1,000", "1,000 - 10,000",
 
 # try a heatmap
 missing_heat <- ggplot( data = long %>% filter( groups > 0 ),
-        mapping = aes( x = tag,
-                       y = country,
-                       fill = groups,
-                       label = groups ) ) +
+                        mapping = aes( x = tag,
+                                       y = country,
+                                       fill = groups,
+                                       label = groups ) ) +
   geom_tile( color = "black" ) +
   geom_text( ) +
   scale_x_discrete( limits = rev( orderx ) ) +
@@ -692,7 +719,8 @@ missing_heat <- ggplot( data = long %>% filter( groups > 0 ),
 missing_heat
 
 # create a panel with map and heatmap
-plot_grid( america_map.p + theme( legend.position = "right" ),
+plot_grid( america_map.p + theme( legend.position = "right", plot.caption = element_blank() ),
+           labels = c('A', 'B'),
            missing_heat )
 
 ggsave( filename = "map_and_missing.png",
@@ -817,17 +845,24 @@ barplotparticipants
 # create a panel
 authorspanel <- plot_grid( firstauthorpie, correspondingpie, nrow = 1 )
 
-completepanel <- plot_grid( authorspanel,
-                            barplotparticipants,
-                            ncol = 1 )
+# completepanel <- plot_grid( authorspanel,
+#                             barplotparticipants,
+#                             ncol = 1 )
 
 # vis
 # completepanel
 
 # Save the panel
 ggsave( filename = "authorship_panel.png",
-        plot = completepanel,
+        plot = authorspanel,
         width = 7,
         height = 7,
+        dpi = 600 )
+
+# Save the panel
+ggsave( filename = "other_authors.png",
+        plot = barplotparticipants,
+        width = 7,
+        height = 5,
         dpi = 600 )
 ```
