@@ -25,7 +25,7 @@ p_load( "vroom",
 
 # america_natam_data.df <- vroom("natam_groups_and_estimated_pop_perhome_country.tsv")
 america_natam_data.df <- read.xlsx( xlsxFile = "Tables A tale of native american whole genome sequencing.xlsx",
-                                    sheet = "Sup Table XXX",
+                                    sheet = "ST1",
                                     startRow = 2 ) %>% 
   rename( America_Region = America.Region )
 
