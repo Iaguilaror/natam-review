@@ -342,7 +342,9 @@ plot_areas <- function( the_data, the_tech ){
            axis.text.y.left = element_blank( ),
            axis.ticks.y.left = element_blank( ),
            panel.background = element_rect( color = "black",
-                                            size = 2, linetype = "solid" ) )
+                                            size = 2, linetype = "solid" ),
+                                            plot.title = element_text( face = "bold" ),
+           legend.title = element_text( face = "bold" ) )
   
 }
 
