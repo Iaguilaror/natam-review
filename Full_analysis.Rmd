@@ -1,10 +1,10 @@
 ---
-title: "Review Analysis - A tale of native american whole genome sequencing"
+title: "Review Analysis - A tale of native american whole genome sequencing..."
 author:
 - "Developer / Analyst: Israel Aguilar"
 - "With Data from: Josue Guzman"
 - "Data collection: Aguilar's Virtual Lab Team"
-date: "23 January 2022"
+date: "24 March 2022"
 output: pdf_document
 ---
 
@@ -76,12 +76,12 @@ kable( x = bytech )
 # sum every individual studied
 paste( sum( allprojects$WES.Samples,
             allprojects$WGS.Samples,
-            allprojects$Arrays.Samples ), "NatAm individuals have been studied" )
+            allprojects$Array.Samples ), "NatAm individuals have been studied" )
 
 # sum by tech
 paste( sum( allprojects$WES.Samples), "studied by WES" ) 
 paste( sum( allprojects$WGS.Samples), "studied by WGS" ) 
-paste( sum( allprojects$Arrays.Samples), "studied by Array tech" ) 
+paste( sum( allprojects$Array.Samples), "studied by Array tech" ) 
 ```
 
 # Timeline for projects
@@ -96,30 +96,30 @@ paste( sum( allprojects$Arrays.Samples), "studied by Array tech" )
 # Array Samples
 # Data.Availability
 simplified <- allprojects %>% 
-  select( Year.publication,
+  select( Year.Publication,
           Technology,
-          `NatAm.DNA.studied.(Contemporaneous,.aDNA,.Both)`, WES.Samples,
-          WGS.Samples, Arrays.Samples,
+          `DNA.Studied.(Contemporaneous,.aDNA,.Both)`, WES.Samples,
+          WGS.Samples, Array.Samples,
           Data.Availability ) %>% 
-  rename( year = Year.publication,
-          time_of_samples = `NatAm.DNA.studied.(Contemporaneous,.aDNA,.Both)` )
+  rename( year = Year.Publication,
+          time_of_samples = `DNA.Studied.(Contemporaneous,.aDNA,.Both)` )
 
 # extract individual DFs by type of samples
 array_projects <- simplified %>% 
-  filter( Arrays.Samples > 0 ) %>% 
+  filter( Array.Samples > 0 ) %>% 
   select( -WES.Samples, -WGS.Samples ) %>%
   mutate( Technology = "Array" ) %>% 
-  rename( samples = Arrays.Samples )
+  rename( samples = Array.Samples )
 
 WES_projects <- simplified %>% 
   filter( WES.Samples > 0 ) %>% 
-  select( -Arrays.Samples, -WGS.Samples ) %>%
+  select( -Array.Samples, -WGS.Samples ) %>%
   mutate( Technology = "WES" ) %>% 
   rename( samples = WES.Samples )
 
 WGS_projects <- simplified %>% 
   filter( WGS.Samples > 0 ) %>% 
-  select( -Arrays.Samples, -WES.Samples ) %>%
+  select( -Array.Samples, -WES.Samples ) %>%
   mutate( Technology = "WGS" ) %>% 
   rename( samples = WGS.Samples )
 
@@ -162,7 +162,7 @@ timeline <- ggplot( data = alltech,
          legend.title = element_text( face = "bold" ) )
 
 # save plot for manuscript
-ggsave( filename = "timeline.png",
+ggsave( filename = "timeline.tiff",
         plot = timeline,
         width = 7,
         height = 5,
@@ -210,7 +210,7 @@ line_dot <- ggplot( data = sum_by_year,
                       breaks = seq( 2009, 2021, 2) ) +
   scale_color_jama( ) +
   labs( title = "The increase in NatAm sequencing",
-        x = "year of publishing",
+        x = "Year of publication",
         y = "Acc. studied individuals") +
   theme_classic( ) +
   theme( legend.position = "top",
@@ -219,7 +219,7 @@ line_dot <- ggplot( data = sum_by_year,
          plot.title = element_blank( ) )
 
 # save plot for manuscript
-ggsave( filename = "acc_individuals.png",
+ggsave( filename = "acc_individuals.tiff",
         width = 7,
         height = 5,
         dpi = 600 )
@@ -239,7 +239,7 @@ timedot <- plot_grid( timeline,
                       axis = "lr" )
 
 # save plot for manuscript
-ggsave( filename = "timepanel.png",
+ggsave( filename = "timepanel.tiff",
         plot = timedot,
         width = 7,
         height = 10,
@@ -256,12 +256,12 @@ ggsave( filename = "timepanel.svg",
 
 ```{r }
 full_natam_samples <- read.xlsx( xlsxFile = "Tables A tale of native american whole genome sequencing.xlsx", sheet = "ST3", startRow = 2 ) %>% 
-  mutate( year = as.numeric( Publication_Year ) )
+  mutate( year = as.numeric( Publication.Year ) )
 
 # clear the df and summarize
 cleared <- full_natam_samples %>% 
-  select( year, Technology, Data_availability ) %>% 
-  group_by( year, Technology, Data_availability ) %>% 
+  select( year, Technology, Data.Availability ) %>% 
+  group_by( year, Technology, Data.Availability ) %>% 
   summarise( bydata_total_year = n( ) )
 ```
 
@@ -271,20 +271,20 @@ all_years <- unique( cleared$year ) %>% sort( )
 
 all_technologies <- unique( cleared$Technology ) %>% sort( )
 
-all_availability <- unique( cleared$Data_availability ) %>% sort( )
+all_availability <- unique( cleared$Data.Availability ) %>% sort( )
 
 # create the crossinf of variables
 base_df <- crossing( all_years, all_technologies, all_availability ) %>% 
   rename( year = all_years,
           Technology = all_technologies,
-          Data_availability = all_availability )
+          Data.Availability = all_availability )
 
 # annotate base df
 annotated <- left_join( x = base_df,
                         y = cleared,
                         by = c( "year" = "year",
                                 "Technology" = "Technology",
-                                "Data_availability" = "Data_availability" ) ) %>% 
+                                "Data.Availability" = "Data.Availability" ) ) %>% 
   mutate( bydata_total_year = ifelse( test = is.na( bydata_total_year ), yes = 0, no = bydata_total_year ) )
 
 # create a function for stacked area plot
@@ -293,14 +293,14 @@ plot_areas <- function( the_data, the_tech ){
   ## lets try only with arrays
   percentages <- the_data %>%
     filter( Technology == the_tech ) %>% 
-    group_by( Data_availability ) %>%
+    group_by( Data.Availability ) %>%
     summarize( year = year,
                Technology = Technology,
                bydata_total_year = bydata_total_year,
                accumulated_bydata = cumsum( bydata_total_year ) ) %>% 
     ungroup( ) %>% 
     group_by( year ) %>% 
-    summarize( Data_availability,
+    summarize( Data.Availability,
                Technology = Technology,
                bydata_total_year = bydata_total_year,
                accumulated_bydata = accumulated_bydata,
@@ -313,13 +313,13 @@ plot_areas <- function( the_data, the_tech ){
   
   # show table for 2021 share of available data
   print( the_tech )
-  print( kable( x = percentages %>% filter( year == 2021 ) %>% select(year, Data_availability, accumulated_bydata, fraction ) ) )
+  print( kable( x = percentages %>% filter( year == 2021 ) %>% select(year, Data.Availability, accumulated_bydata, fraction ) ) )
   
   # Create area plot...
   ggplot( data = percentages,
           mapping = aes( x = year,
                          y = fraction,
-                         fill = Data_availability ) ) + 
+                         fill = Data.Availability ) ) + 
     geom_area( alpha = 0.6,
                size = 1,
                colour = "black" ) +
@@ -329,11 +329,12 @@ plot_areas <- function( the_data, the_tech ){
     scale_y_continuous( labels = percent, 
                         expand = c(0, 0),
                         sec.axis = sec_axis( trans = ~.,
-                                             name = "accumulated data",
+                                             name = "Accumulated data",
                                              labels = percent ) ) +
     # scale_fill_startrek( ) +
     scale_fill_manual( values = c("#cc1c00", "#84bd00")) +
     labs( title = "Trends in Data Availability",
+          x = "Year",
           y = the_tech,
           fill = "Data available?" ) +
     theme_light( ) +
@@ -360,13 +361,15 @@ array_stack <- plot_areas( the_data = annotated,
 share_panel <- plot_grid( wgs_stack +
                             theme( axis.title.x = element_blank( ),
                                    axis.text.x = element_blank( ),
+                                   axis.title.y.right = element_blank( ),
                                    legend.position = "none" ),
                           wes_stack +
                             theme( axis.title.x = element_blank( ),
                                    axis.text.x = element_blank( ),
                                    plot.title = element_blank( ) ),
                           array_stack +
-                            theme( plot.title = element_blank( ),
+                            theme( axis.title.y.right = element_blank( ),
+                                   plot.title = element_blank( ),
                                    axis.text.x = element_text( angle = 90, vjust = 0.5, hjust = 0.5 ),
                                    legend.position = "none" ),
                           ncol = 1,
@@ -375,7 +378,7 @@ share_panel <- plot_grid( wgs_stack +
                           rel_heights = c( 0.35, 0.3, 0.35)  )
 
 # save plot for manuscript
-ggsave( filename = "sharepanel.png",
+ggsave( filename = "sharepanel.tiff",
         plot = share_panel,
         width = 7,
         height = 10,
@@ -389,7 +392,7 @@ ggsave( filename = "sharepanel.svg",
 
 # print total samples with availble data
 message( annotated %>%
-           filter(Data_availability == "Yes") %>%
+           filter(Data.Availability == "Yes") %>%
            pull(bydata_total_year) %>% 
            sum( ),
          " samples with available data")
@@ -403,7 +406,7 @@ plot_grid( timedot,
            nrow = 1 )
 
 # Save
-ggsave( filename = "timepanelv2.png",
+ggsave( filename = "timepanelv2.tiff",
         # plot = timedot,
         width = 14,
         height = 7,
@@ -422,13 +425,13 @@ ggsave( filename = "timepanelv2.svg",
 ```{r}
 ##  get the number of ancient samples
 message( full_natam_samples %>%
-           filter( DNA_type_of_samples == "AncientDNA" ) %>% 
+           filter( DNA.Type.of.Samples == "AncientDNA" ) %>% 
            nrow( ) ,
          " samples are ancient DNA")
 
 # Lets create a pie chart for ancient and modern dna
 pie_data <- full_natam_samples %>% 
-  group_by( DNA_type_of_samples ) %>% 
+  group_by( DNA.Type.of.Samples ) %>% 
   summarise( samples = n( ) ) %>% 
   mutate( fraction = samples / sum(samples) ,
           percent = percent(fraction),
@@ -442,8 +445,8 @@ kable( x = pie_data )
 pieplot <- ggplot( data = pie_data,
                    mapping = aes( x = 2,
                                   y = fraction,
-                                  fill = DNA_type_of_samples ) ) +
-  geom_label_repel( mapping = aes( label = paste( DNA_type_of_samples,
+                                  fill = DNA.Type.of.Samples ) ) +
+  geom_label_repel( mapping = aes( label = paste( DNA.Type.of.Samples,
                                                   "\n",
                                                   prettyNum( samples, big.mark = "," ),
                                                   "samples" ),
@@ -462,7 +465,9 @@ pieplot <- ggplot( data = pie_data,
   labs( title = "Ancient DNA in NatAm genomics" ) +
   theme_void( ) +
   theme( legend.position = "none",
-         # plot.background = element_rect( fill = "white")
+         panel.background = element_rect( fill = "white", color = NA ),
+         plot.background = element_rect( fill = "white", color = NA ),
+         plot.title = element_text( hjust = 0.5 )
   )
 
 ```
@@ -471,12 +476,12 @@ pieplot <- ggplot( data = pie_data,
 
 # Get the share of available data per type of DNA
 fractions <- full_natam_samples %>% 
-  group_by( DNA_type_of_samples,
-            Data_availability ) %>% 
+  group_by( DNA.Type.of.Samples,
+            Data.Availability ) %>% 
   summarise( samples = n( ) ) %>% 
   ungroup(  ) %>% 
-  group_by( DNA_type_of_samples ) %>% 
-  summarise( Data_availability = Data_availability,
+  group_by( DNA.Type.of.Samples ) %>% 
+  summarise( Data.Availability = Data.Availability,
              samples = samples,
              totals = sum(samples),
              frac = samples / totals )
@@ -486,9 +491,9 @@ kable( x = fractions )
 
 # Lets plot cols stacked
 sharebar <- ggplot( data = fractions,
-                    mapping = aes( x = DNA_type_of_samples,
+                    mapping = aes( x = DNA.Type.of.Samples,
                                    y = frac,
-                                   fill = Data_availability ) ) +
+                                   fill = Data.Availability ) ) +
   geom_col( color = "black", width = 0.9, alpha = 0.6 ) +
   scale_fill_manual( values = c("#cc1c00", "#84bd00")) +
   scale_y_continuous( limits = c(0,1),
@@ -517,20 +522,20 @@ ancient_panel <- plot_grid( pieplot,
 treemaper <- function( the_data, the_time, n_cut, the_color ) {
   #
   tmp_data <- the_data %>% 
-    filter( DNA_type_of_samples == the_time )
+    filter( DNA.Type.of.Samples == the_time )
   
   # sample cutofffor other tagging
   sample_cutoff <- n_cut
   
   # Lets create a treemap to see the most studied pops
   pop_summary <- tmp_data %>% 
-    group_by( Homologated_pop_code ) %>%
+    group_by( Homologated.Pop.Code ) %>%
     summarise( samples = n( ) ) %>% 
     arrange( -samples ) %>% 
     ungroup( ) %>% 
     mutate( tag = ifelse( test = samples < sample_cutoff,
                           yes = "other",
-                          no = Homologated_pop_code )) %>% 
+                          no = Homologated.Pop.Code )) %>% 
     group_by( tag ) %>% 
     summarise( totals = sum(samples)  ) %>% 
     arrange( -totals ) %>% 
@@ -538,7 +543,7 @@ treemaper <- function( the_data, the_time, n_cut, the_color ) {
   
   # number of other pops
   other_n <- tmp_data %>% 
-    group_by( Homologated_pop_code ) %>% 
+    group_by( Homologated.Pop.Code ) %>% 
     summarise( samples = n( ) ) %>% 
     arrange( -samples ) %>% 
     ungroup( ) %>% 
@@ -591,14 +596,14 @@ treemaper <- function( the_data, the_time, n_cut, the_color ) {
 
 ```{r }
 ## How many uniq groups in the table?
-studiedgroups <- full_natam_samples$Homologated_pop_code %>% unique( ) %>% sort( )
+studiedgroups <- full_natam_samples$Homologated.Pop.Code %>% unique( ) %>% sort( )
 
 # mess
 message( length( studiedgroups ), " unique studied groups with any tech" )
 
 # see studied groups by technology
 full_natam_samples %>% 
-  select( Technology, Homologated_pop_code ) %>% 
+  select( Technology, Homologated.Pop.Code ) %>% 
   unique( ) %>% 
   group_by( Technology ) %>% 
   summarise( studied_pops = n( ) ) %>% 
@@ -630,7 +635,7 @@ thepanel <- plot_grid( ancient_panel,
                        rel_heights = c( 0.4, 0.6 ) )
 
 # save plot for manuscript
-ggsave( filename = "ancientpanel.png",
+ggsave( filename = "ancientpanel.tiff",
         plot = thepanel,
         width = 10,
         height = 10,
@@ -660,29 +665,29 @@ allcensus <- read.xlsx(xlsxFile = "Tables A tale of native american whole genome
 
 # find the "censed" natam groups that have not been represented
 notrepresented <- allcensus %>% 
-  filter( !(allcensus$Homologated_pop_code %in% studiedgroups) ) %>% 
+  filter( !(allcensus$Homologated.Pop.Code %in% studiedgroups) ) %>% 
   # tag not represented pops by size
-  mutate( tag = case_when( population < 100 ~ "< 100",
-                           population < 1000 ~ "100 - 1,000",
-                           population < 10000 ~ "1,000 - 10,000",
-                           population < 100000 ~ "10,000 - 100,000",
-                           population < 1000000 ~ "100,000 - 1,000,000",
-                           population >= 1000000 ~ "> 1,000,000" ) ) %>% 
-  mutate( order = case_when( population < 100 ~ "1",
-                             population < 1000 ~ "2",
-                             population < 10000 ~ "3",
-                             population < 100000 ~ "4",
-                             population < 1000000 ~ "5",
-                             population >= 1000000 ~ "6" ) )
+  mutate( tag = case_when( Population < 100 ~ "< 100",
+                           Population < 1000 ~ "100 - 1,000",
+                           Population < 10000 ~ "1,000 - 10,000",
+                           Population < 100000 ~ "10,000 - 100,000",
+                           Population < 1000000 ~ "100,000 - 1,000,000",
+                           Population >= 1000000 ~ "> 1,000,000" ) ) %>% 
+  mutate( order = case_when( Population < 100 ~ "1",
+                             Population < 1000 ~ "2",
+                             Population < 10000 ~ "3",
+                             Population < 100000 ~ "4",
+                             Population < 1000000 ~ "5",
+                             Population >= 1000000 ~ "6" ) )
 
 # summarize missing groups by pop size...
 missumarised <- notrepresented %>% 
-  filter( !is.na(population) ) %>% 
-  group_by( Home.country, tag, order ) %>% 
+  filter( !is.na(Population) ) %>% 
+  group_by( Home.Country, tag, order ) %>% 
   summarise( groups = n( ) ) %>% 
   pivot_wider( data = .,
                id_cols = c(tag, order),
-               names_from = Home.country,
+               names_from = Home.Country,
                values_from = groups ) %>% 
   arrange( desc(order) ) %>% 
   select( -order )
@@ -743,7 +748,7 @@ missing_heat <- ggplot( data = long %>% filter( groups > 0 ),
   scale_y_discrete( limits = rev( order ) ) +
   scale_fill_gradient( low = "white",
                        high = "tomato" ) +
-  labs( title = "NatAm groups not represented in genomics",
+  labs( title = "NatAm groups missing in genomics",
         x = "Population size",
         fill = "# of groups" ) +
   theme_light( ) +
@@ -763,7 +768,7 @@ plot_grid( america_map.p + theme( legend.position = "right", plot.caption = elem
            missing_heat )
 
 # Save plot for paper
-ggsave( filename = "map_and_missing.png",
+ggsave( filename = "map_and_missing.tiff",
         width = 10,
         height = 5,
         dpi = 600 )
@@ -890,15 +895,8 @@ barplotparticipants
 # create a panel
 authorspanel <- plot_grid( firstauthorpie, correspondingpie, nrow = 1 )
 
-# completepanel <- plot_grid( authorspanel,
-#                             barplotparticipants,
-#                             ncol = 1 )
-
-# vis
-# completepanel
-
 # Save the panel for paper
-ggsave( filename = "authorship_panel.png",
+ggsave( filename = "authorship_panel.tiff",
         plot = authorspanel,
         width = 7,
         height = 7,
@@ -910,10 +908,4 @@ ggsave( filename = "authorship_panel.svg",
         height = 7,
         dpi = 600 )
 
-# Save the panel
-ggsave( filename = "other_authors.png",
-        plot = barplotparticipants,
-        width = 7,
-        height = 5,
-        dpi = 600 )
 ```

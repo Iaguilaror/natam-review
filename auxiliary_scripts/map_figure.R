@@ -104,31 +104,32 @@ america_map_data_2.df <- rbind(america_map_data_1.df,
 
 # Graficar mapa de America ------------------------------------------------
 
-america_map.p <- ggplot(america_map_data_2.df) +
-  geom_sf(aes(fill = as.integer(Total.NatAm.Population.reported)),
-          color = "black",
-          size = 0.2)  + 
-  scale_fill_gradient(low = "white",  #gris 
-                      high = "#ff9900", #orange
-                      breaks = seq( from = 0, to = 8e6, by = 2e6 ),
-                      limits = c (0, 8e6),
-                      labels = seq( from = 0, to = 8, by = 2 ) %>% paste(., "M")  ) +
-  guides(fill = guide_colourbar(ticks.colour = "black",
-                                frame.colour = "black")) +
-  coord_sf(xlim = c(-170, -15),           
-           ylim = c(-90, 120)) +
-  labs(title = "NatAm Population",
-       fill = "habitants",
-       caption = "Data Sources = \n Official Censuses Data of NatAm Pop of each country, \n IGWIA 2021, \n Labels show those countries with more than 1 million Native American population") +
-  geom_sf_label(aes(label = ifelse(as.integer(Total.NatAm.Population.reported) > 1e6,
-                                   Isocode,
-                                   NA)),
-                nudge_x = 0,
-                nudge_y = 0,
-                size = 3,
-                fill = NA,
-                color = "black",
-                label.size = 0 ) +
+america_map.p <- ggplot( america_map_data_2.df ) +
+  geom_sf( mapping = aes( fill = as.integer( Total.NatAm.Population.reported ) ),
+           color = "black",
+           size = 0.2 )  + 
+  scale_fill_gradient( low = "white",
+                       high = "#ff9900",
+                       breaks = seq( from = 0, to = 8e6, by = 2e6 ),
+                       limits = c ( 0, 8e6 ),
+                       labels = seq( from = 0, to = 8, by = 2 ) %>% paste( ., "M" )  ) +
+  guides( fill = guide_colourbar( ticks.colour = "black",
+                                  frame.colour = "black" ) ) +
+  coord_sf( xlim = c( -170, -15 ),           
+            ylim = c( -90, 120 ) ) +
+  labs(title = "The Native Population",
+       fill = "NatAm habitants",
+       # caption = "Data Sources = \n Official Censuses Data of NatAm Pop of each country, \n IGWIA 2021, \n Labels show those countries with more than 1 million Native American population"
+  ) +
+  geom_sf_label( mapping = aes( label = ifelse( test = as.integer( Total.NatAm.Population.reported ) > 1e6,
+                                                yes = Isocode,
+                                                no = NA ) ),
+                 nudge_x = -20,
+                 nudge_y = 0,
+                 size = 3,
+                 fill = NA,
+                 color = "black",
+                 label.size = 0 ) +
   theme_void(base_size = 16)
 
 # Vis
@@ -139,20 +140,18 @@ america_map.p
 # salvar mapa 
 
 # png
-ggsave( filename = "Estimated_NatAm_Pop_in_America_Countries.png",    # nombre del archivo de salida
+ggsave( filename = "Estimated_NatAm_Pop_in_America_Countries.tiff",    # nombre del archivo de salida
         plot = america_map.p,                   # cual grafico guardamos
         width = 15,                     # ancho de 7 pulgadas
         height = 8,                    # alto de 7 pulgadas
-        dpi = 400 )                    # resolucion de 300 dpi
-
-
+        dpi = 600 )                    # resolucion de 300 dpi
 
 # svg
 ggsave(filename = "Estimated_NatAm_Pop_in_America_Countries.svg", 
        plot = america_map.p,                
        device = "svg",                         
-       width = 15, height = 8, units = "in",   
-       dpi = 400)                              
+       width = 15, height = 8,   
+       dpi = 600)                              
 
 
 
