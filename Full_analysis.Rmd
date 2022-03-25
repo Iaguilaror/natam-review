@@ -343,7 +343,7 @@ plot_areas <- function( the_data, the_tech ){
            axis.ticks.y.left = element_blank( ),
            panel.background = element_rect( color = "black",
                                             size = 2, linetype = "solid" ),
-                                            plot.title = element_text( face = "bold" ),
+           plot.title = element_text( face = "bold" ),
            legend.title = element_text( face = "bold" ) )
   
 }
@@ -469,7 +469,7 @@ pieplot <- ggplot( data = pie_data,
   theme( legend.position = "none",
          panel.background = element_rect( fill = "white", color = NA ),
          plot.background = element_rect( fill = "white", color = NA ),
-         plot.title = element_text( hjust = 0.5 )
+         plot.title = element_text( hjust = 0.5, vjust = 0.5, face = "bold" )
   )
 
 ```
@@ -507,8 +507,10 @@ sharebar <- ggplot( data = fractions,
         y = "Accumulated samples",
         fill = "Is Publicly Available?" ) +
   theme_classic( ) +
-  theme( legend.position = "right",
-         axis.text.x = element_text( face = "bold" ) )
+  theme( legend.position = "top",
+         axis.text.x = element_text( face = "bold" ),
+         plot.title = element_text( hjust = 0.5, vjust = 0.5, face = "bold" ),
+         legend.title = element_blank( ) )
 
 # create a panel for ancient overview
 ancient_panel <- plot_grid( pieplot,
